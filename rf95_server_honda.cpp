@@ -555,9 +555,8 @@ int main(int argc, char *argv[]) {
 
         string dname = pt.get<string>("database.dbname");
 
-
-        IP_ADDR = pt.get<string>("socket.ip", "192.168.0.32");
-        PORTA = pt.get<int>("socket.porta", 8080);
+        string IP_ADDR = pt.get<string>("socket.ip", "192.168.0.32");
+        string PORTA = pt.get<int>("socket.porta", 8080);
 
     }
 
