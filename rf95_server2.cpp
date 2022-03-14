@@ -32,12 +32,13 @@
 
 using namespace boost::asio;
 
-// screen -d -m -S shared e screen -x
+
+//screen -d -m -S shared e screen -x
 #define LAST_UPDATE "20.01.2020 15:16"
 
 // AFEletronica Multi Radio
 // see <https://www.afeletronica.com.br>
-//! Definicao dos pinos. ATENCAO: Nao habilite interrupcao.
+//!Definicao dos pinos. ATENCAO: Nao habilite interrupcao.
 #define BOARD_AF_ELETRONICA
 
 // Now we include RasPi_Boards.h so this will expose defined
@@ -56,7 +57,7 @@ using namespace boost::asio;
 #define DEFAULT_PROTOCOL_LENGTH 36
 
 /***********************************************/
-#define TIME_TO_UPDATE 3000 // Time before entering to update mode.
+#define TIME_TO_UPDATE 1000 //Time before entering to update mode.
 /***********************************************/
 /*! Habilita (1) ou desabilita (2) o debug. Pode ser ativado por linha de comando com
 o parametro -v ou atraves do arquivo ini.*/
@@ -67,16 +68,16 @@ sio::client h;
 uint8_t number_of_radios_to_initialize = 3;
 
 using namespace std;
-// using namespace boost::posix_time;
-// using namespace boost::gregorian;
+//using namespace boost::posix_time;
+//using namespace boost::gregorian;
 
-static RH_RF95 _rf95; //! Singleton Radio Head Driver
+static RH_RF95 _rf95; //!Singleton Radio Head Driver
 
-string basedir; //! diretorio primário comum aos arquivos.
+string basedir; //!diretorio primário comum aos arquivos.
 string pageFile_filename;
-string logdir_name; //! Diretorio e nome de arquivo de log.
+string logdir_name; //!Diretorio e nome de arquivo de log.
 
-uint8_t logger = 0; //! Habilita logs. Pode ser modificado atraves do arquivo ini.
+uint8_t logger = 0; //!Habilita logs. Pode ser modificado atraves do arquivo ini.
 
 static std::queue<std::string> forwardToLoRa{};
 
@@ -113,28 +114,28 @@ float frequencies[3] = {914.0, 914.25, 914.50};
 o parametro -v ou atraves do arquivo ini.*/
 void debug(string msg);
 
-//! Gerador de logs dos eventos de erro do sistema para auxílio na depuracao.
+//!Gerador de logs dos eventos de erro do sistema para auxílio na depuracao.
 void log(string msg);
 
-//! Substituicao de caracteres em um array.
+//!Substituicao de caracteres em um array.
 char *replace_char(char *str, char find, char replace);
 
-//! Checa se já há uma instancia rodando para não executar 2x o programa.
+//!Checa se já há uma instancia rodando para não executar 2x o programa.
 bool isAlreadyRunning();
 
 /*!Converte date/time para string, utilizado no banco de dados e logs. Para que seja util, e fundamental a configuracao de servidor de hora no sistema.
  O parametro pode ser UNIX_EPOCH ou HUMAN_TIME.*/
 string dateTimeToStr(uint8_t format);
 
-//! Instancias dos rádios
+//!Instancias dos rádios
 RH_RF95 rf95_u2(RF_CS_PIN, RF_IRQ_PIN);
 RH_RF95 rf95_u3(RF_CS_PIN2, RF_IRQ_PIN2);
 RH_RF95 rf95_u7(RF_CS_PIN3, RF_IRQ_PIN3);
 
-//! Array dos objetos do rádio, para fácil manipulacao.
+//!Array dos objetos do rádio, para fácil manipulacao.
 RH_RF95 rf95[3] = {rf95_u2, rf95_u3, rf95_u7};
 
-//! Utilizado no loop para chavear a leitura dos rádios.
+//!Utilizado no loop para chavear a leitura dos rádios.
 unsigned char radioNumber = 0;
 
 /*!Estrutura de servicos dedicados a cada rádio. Esses valores sao passados atraves do arquivo /home/pi/AFMultiRadio.ini.
@@ -152,7 +153,7 @@ struct srvs
   uint8_t number_of_radios_to_initialize = 3;
 } services;
 
-//! Flag for Ctrl-C para interromper o programa.
+//!Flag for Ctrl-C para interromper o programa.
 volatile sig_atomic_t force_exit = false;
 
 string dateTimeToStr(uint8_t format)
@@ -238,7 +239,7 @@ void log(string msg)
   logfile.close();
 }
 
-//! Manipulador de tempo para se assemelhar ao millis do Arduino. Utilizado em conjunto com o millis declarado seguidamente a essa funcao.
+//!Manipulador de tempo para se assemelhar ao millis do Arduino. Utilizado em conjunto com o millis declarado seguidamente a essa funcao.
 int getMillis()
 {
   timeb tb;
@@ -247,7 +248,7 @@ int getMillis()
   return nCount;
 }
 
-//! Manipulador de tempo para se assemelhar ao millis do Arduino
+//!Manipulador de tempo para se assemelhar ao millis do Arduino
 int millis(int val)
 {
   int nSpan = getMillis() - val;
@@ -272,21 +273,20 @@ void debug(string msg)
   }
 }
 
-//! Manipulador da interrupcao com Ctrl+C
+//!Manipulador da interrupcao com Ctrl+C
 void sig_handler(int sig)
 {
   printf("\n%s Break received, exiting!\n", __BASEFILE__);
   log("Programa encerrado");
-  // FECHA A BASE DE DADOS SE FOI SOLICITADO O ENCERRAMENTO DO PROGRAMA
+  //FECHA A BASE DE DADOS SE FOI SOLICITADO O ENCERRAMENTO DO PROGRAMA
 
   force_exit = true;
 }
 
-void splitBuf(char *buf, ReceivedData &data)
-{
-  const char *myStr = buf;
-  std::string cPlusString = myStr;
-  data.bufstr = cPlusString;
+void splitBuf(char *buf, ReceivedData &data) {
+    const char* myStr = buf;
+    std::string cPlusString = myStr;  
+    data.bufstr = cPlusString;
 }
 
 /**
@@ -312,34 +312,32 @@ void receiveMessage(UI ui, uint8_t from, uint8_t radio, ReceivedData &data)
   debug(ui.verde + data.bufstr + ui.remove_cor);
   debug("\n");
 
-  // TODO envia a mensagem via Socket
+  //TODO envia a mensagem via Socket
   h.socket()->emit("message", data.bufstr);
 }
 
-void SendMessageLoRa(std::string str)
-{
+void SendMessageLoRa( std::string str ){
   UI ui{};
   // cria um vetor de uint8_t (unsigned char)
-  uint8_t data[str.size()];
-  // preenche a ultima posição com o terminador de string '\0'
-  memset(data, '\0', sizeof(data) + 1);
-  // transfere os caracteres da mensagem que estava na fila para o vetor uint8_t
-  for (size_t i = 0; i < str.size(); i++)
-    data[i] = str.at(i);
+        uint8_t data[str.size()];
+        // preenche a ultima posição com o terminador de string '\0'
+        memset(data, '\0', sizeof(data) + 1);
+        // transfere os caracteres da mensagem que estava na fila para o vetor uint8_t
+        for (size_t i = 0; i < str.size(); i++) data[i] = str.at(i);
 
-  debug("Enviando mensagem: " + ui.verde);
-  debug(data);
-  debug(" ");
-  debug(to_string(str.size()) + "Bytes" + ui.remove_cor);
-  debug("\n");
-  // envia a mensagem
-  rf95[1].send(data, sizeof(data));
-  rf95[1].waitPacketSent();
+        debug("Enviando mensagem: " + ui.verde);
+        debug(data);
+        debug(" ");
+        debug(to_string(str.size()) + "Bytes" + ui.remove_cor); 
+        debug("\n");
+        // envia a mensagem
+        rf95[1].send(data, sizeof(data));
+        rf95[1].waitPacketSent();
 
-  debug(ui.verde + "Enviado com Sucesso " + ui.remove_cor + "\n");
+        debug(ui.verde + "Enviado com Sucesso " + ui.remove_cor + "\n");
 }
 
-void OnMessage(sio::event &ev)
+void OnMessage(sio::event& ev)
 {
   UI ui{};
   std::string socketmsg = ev.get_message()->get_string();
@@ -347,19 +345,8 @@ void OnMessage(sio::event &ev)
   forwardToLoRa.push(socketmsg);
 }
 
-void ReadLoRaArray()
-{
-  UI ui{};
-  if (!forwardToLoRa.empty())
-  {
-    debug(":::Iniciando entrega de mensagens:::\n");
-    debug("[ " + ui.amarelo + dateTimeToStr(HUMAN_TIME) + ui.remove_cor + "] ");
-    debug("Transmitindo na frequencia: " + to_string(frequencies[1]));
-    debug("\n");
-  }
-  while (!forwardToLoRa.empty())
-  {
-    bcm2835_delay(250);
+void ReadLoRaArray(){
+   while (!forwardToLoRa.empty()) {
     SendMessageLoRa(forwardToLoRa.front());
     forwardToLoRa.pop();
   }
@@ -373,14 +360,14 @@ int main(int argc, char *argv[])
   cout << string(100, '\n');
 
   /*O BCM faz acesso exclusivos que nao podem ser manipulados pelo usuário, portanto e necessário verificar quem o está executando para evitar
-   * mensagens de erros que parecam-se com bug. O programa nao executa como usuário mesmo sem essa validacao.*/
+     * mensagens de erros que parecam-se com bug. O programa nao executa como usuário mesmo sem essa validacao.*/
   if (getuid())
   {
     cout << "O programa deve ser rodado como root. Saindo..." << endl;
     exit(0);
   }
 
-  //! Utilizando boost para a leitura de arquivo ini com as predefinicoes de inicializacao.
+  //!Utilizando boost para a leitura de arquivo ini com as predefinicoes de inicializacao.
   if (FILE *f = fopen(INIFILE, "r"))
   {
     fclose(f);
@@ -389,58 +376,58 @@ int main(int argc, char *argv[])
 
     /*Se nao houver definicao do arquivo ini, utiliza os proprios valores definidos no array, no início das declaracoes do codigo.*/
     frequencies[0] = pt.get<float>("frequency.radio0",
-                                   frequencies[0]); //! Frequencia do rádio 0 configurado no arquivo /home/pi/AFMultiRadio.ini
+                                   frequencies[0]); //!Frequencia do rádio 0 configurado no arquivo /home/pi/AFMultiRadio.ini
     frequencies[1] = pt.get<float>("frequency.radio1",
-                                   frequencies[1]); //! Frequencia do rádio 1 configurado no arquivo /home/pi/AFMultiRadio.ini
+                                   frequencies[1]); //!Frequencia do rádio 1 configurado no arquivo /home/pi/AFMultiRadio.ini
     frequencies[2] = pt.get<float>("frequency.radio2",
-                                   frequencies[2]); //! Frequencia do rádio 2 configurado no arquivo /home/pi/AFMultiRadio.ini
+                                   frequencies[2]); //!Frequencia do rádio 2 configurado no arquivo /home/pi/AFMultiRadio.ini
 
     logdir_name = pt.get<string>("debug.logsdir",
-                                 "/dev/shm/AFMultiRadio.log"); //! Seleciona diretorio de logs, configurado no arquivo /home/pi/AFMultiRadio.ini
+                                 "/dev/shm/AFMultiRadio.log"); //!Seleciona diretorio de logs, configurado no arquivo /home/pi/AFMultiRadio.ini
     logger = pt.get<uint8_t>("debug.logger",
-                             1); //! Ativa (ou nao) o log, configurado no arquivo /home/pi/AFMultiRadio.ini
+                             1); //!Ativa (ou nao) o log, configurado no arquivo /home/pi/AFMultiRadio.ini
     DEBUG_CONSOLE = pt.get<uint8_t>("debug.verbose",
-                                    0); //! Exibe mensagem de debug em modo verboso, configurado no arquivo /home/pi/AFMultiRadio.ini
+                                    0); //!Exibe mensagem de debug em modo verboso, configurado no arquivo /home/pi/AFMultiRadio.ini
 
     services.listener[0] = pt.get<bool>("listener.radio0",
-                                        true); //! Escuta por clients no rádio 0, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
+                                        true); //!Escuta por clients no rádio 0, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
     services.listener[1] = pt.get<bool>("listener.radio1",
-                                        true); //! Escuta por clients no rádio 1, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
+                                        true); //!Escuta por clients no rádio 1, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
     services.listener[2] = pt.get<bool>("listener.radio2",
-                                        true); //! Escuta por clients no rádio 2, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
+                                        true); //!Escuta por clients no rádio 2, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
 
     services.sender[0] = pt.get<bool>("sender.radio0",
-                                      true); //! Envio de firmware pelo rádio 0, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
+                                      true); //!Envio de firmware pelo rádio 0, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
     services.sender[1] = pt.get<bool>("sender.radio1",
-                                      false); //! Envio de firmware pelo rádio 1, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
+                                      false); //!Envio de firmware pelo rádio 1, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
     services.sender[2] = pt.get<bool>("sender.radio2",
-                                      false); //! Envio de firmware pelo rádio 2, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
+                                      false); //!Envio de firmware pelo rádio 2, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
 
     services.bridge[0] = pt.get<bool>("bridge.radio0",
-                                      false); //! Transferencia entre concentradores, pelo rádio 0, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
+                                      false); //!Transferencia entre concentradores, pelo rádio 0, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
     services.bridge[1] = pt.get<bool>("bridge.radio1",
-                                      false); //! Transferencia entre concentradores, pelo rádio 1, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
+                                      false); //!Transferencia entre concentradores, pelo rádio 1, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
     services.bridge[2] = pt.get<bool>("bridge.radio2",
-                                      true); //! Transferencia entre concentradores, pelo rádio 2, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
+                                      true); //!Transferencia entre concentradores, pelo rádio 2, configurado no arquivo /home/pi/AFMultiRadio.ini (boolean)
 
     number_of_radios_to_initialize = pt.get<uint8_t>("start.initialize",
-                                                     3); // Define o número de rádios que tem a placa. Os rádios serão inicializados na ordem u2, u3 e u7. Na ausência do parâmetro, os 3.
+                                                     3); //Define o número de rádios que tem a placa. Os rádios serão inicializados na ordem u2, u3 e u7. Na ausência do parâmetro, os 3.
 
     string dname = pt.get<string>("database.dbname");
     string ipSocket = pt.get<string>("socket.ip");
   }
 
-  //! Logar a inicializacao do programa e importante para definir uma timeline em uma cadeia de eventos.
+  //!Logar a inicializacao do programa e importante para definir uma timeline em uma cadeia de eventos.
   log("Programa inicializado");
 
-  // parsing argument flags
-  int vflag = 0; //! Flag do modo verboso, chamado com -v por linha de comando ou atraves do arquivo ini.
-  int dflag = 0; //! Selecao de base de dados alternativa para fins de debug, chamado com o parametro -d seguido do caminho+nome.
-  int fflag = 0; //! Ajuste de frequencias com -f frq1,freq2,freq3. Exemplo em -h (help). Valores padrao definidos internamente e tambem por arquivo ini.
-  int hflag = 0; //! Flag de ajuda, chamado com -h por linha de comando para exibir as opcoes e exibir exemplo.
+  //parsing argument flags
+  int vflag = 0; //!Flag do modo verboso, chamado com -v por linha de comando ou atraves do arquivo ini.
+  int dflag = 0; //!Selecao de base de dados alternativa para fins de debug, chamado com o parametro -d seguido do caminho+nome.
+  int fflag = 0; //!Ajuste de frequencias com -f frq1,freq2,freq3. Exemplo em -h (help). Valores padrao definidos internamente e tambem por arquivo ini.
+  int hflag = 0; //!Flag de ajuda, chamado com -h por linha de comando para exibir as opcoes e exibir exemplo.
 
-  char *dvalue = NULL; //! Armazena o argumento para o parametro -d (base de dados).
-  char *fvalue = NULL; //! Armazena o argumento para o parametro -f (frequencias dos rádios).
+  char *dvalue = NULL; //!Armazena o argumento para o parametro -d (base de dados).
+  char *fvalue = NULL; //!Armazena o argumento para o parametro -f (frequencias dos rádios).
 
   int index;
   int c;
@@ -476,7 +463,7 @@ int main(int argc, char *argv[])
 
       while (fq != NULL)
       {
-        // printf("::: %s :::\n",fq);
+        //printf("::: %s :::\n",fq);
 
         t = atof(fq);
         frequencies[pos] = t;
@@ -495,15 +482,15 @@ int main(int argc, char *argv[])
       }
       else if (optopt == '\x0')
       {
-        uint8_t x = 0; // so pra evitar esse bug ate descobrir a razao
+        uint8_t x = 0; //so pra evitar esse bug ate descobrir a razao
       }
       else
       {
         fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
       }
-      // return 1;
+      //return 1;
     default:
-      // abort();
+      //abort();
       int x = 1;
     }
 
@@ -518,7 +505,7 @@ int main(int argc, char *argv[])
   unsigned long led_blink = 0;
 
   signal(SIGINT, sig_handler);
-  // printf( "%s\n", __BASEFILE__);
+  //printf( "%s\n", __BASEFILE__);
 
   if (!bcm2835_init())
   {
@@ -527,8 +514,8 @@ int main(int argc, char *argv[])
   }
 
 #ifdef RF_RST_PIN
-  // printf( ", RST=GPIO%d", RF_RST_PIN );
-  //  Pulse a reset on module
+  //printf( ", RST=GPIO%d", RF_RST_PIN );
+  // Pulse a reset on module
   pinMode(RF_RST_PIN, OUTPUT);
   digitalWrite(RF_RST_PIN, LOW);
   bcm2835_delay(150);
@@ -557,22 +544,19 @@ int main(int argc, char *argv[])
   for (int i = 0; i < number_of_radios_to_initialize; i++)
   {
     debug("Settings of radio " + to_string(i) + "\n");
-    if (i == 1)
-    {
-      rf95[i].setTxPower(13, false);
+  if(i==1){
+    rf95[i].setTxPower(13, false);
 
-      rf95[i].setFrequency(frequencies[i]);
-      rf95[i].setPromiscuous(true);
-      rf95[i].setModeTx();
-    }
-    else
-    {
-      rf95[i].setTxPower(13, false);
+    rf95[i].setFrequency(frequencies[i]);
+    rf95[i].setPromiscuous(true);
+    rf95[i].setModeTx();
+  }else{
+    rf95[i].setTxPower(13, false);
 
-      debug("Setting up band (" + to_string(frequencies[i]) + "MHz)\n");
-      rf95[i].setFrequency(frequencies[i]);
-      rf95[i].setPromiscuous(true);
-      rf95[i].setModeRx();
+    debug("Setting up band (" + to_string(frequencies[i]) + "MHz)\n");
+    rf95[i].setFrequency(frequencies[i]);
+    rf95[i].setPromiscuous(true);
+    rf95[i].setModeRx();
     }
   }
   debug("\n\nWaiting message!\n\n");
@@ -591,50 +575,51 @@ int main(int argc, char *argv[])
   //SendMessageLoRa();
 });*/
 
-  // SE PRECISAR FAZER DEBUG APENAS NO PRIMEIRO RADIO,
-  // BASTA COMENTAR O OPERADOR TERNARIO NO FINAL DO LOOP
+
+
+  //SE PRECISAR FAZER DEBUG APENAS NO PRIMEIRO RADIO,
+  //BASTA COMENTAR O OPERADOR TERNARIO NO FINAL DO LOOP
   while (!force_exit)
   {
-    if (radioNumber != 1)
+    if(radioNumber != 1){
+    if (rf95[radioNumber].available())
     {
-      if (rf95[radioNumber].available())
+      // Should be a message for us now
+      uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
+      uint8_t len = sizeof(buf);
+      uint8_t from = rf95[radioNumber].headerFrom();
+
+      _lastMessageMillis = getMillis();
+      
+      if (rf95[radioNumber].recv(buf, &len))
       {
-        // Should be a message for us now
-        uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
-        uint8_t len = sizeof(buf);
-        uint8_t from = rf95[radioNumber].headerFrom();
 
-        _lastMessageMillis = getMillis();
+        // Cria um struct que contém todos os dados da mensagem que chegou pelo LoRa
+        ReceivedData data{};
+        // Seta valores que poderão ser usados futuramente
+        data.rssi = to_string(rf95[radioNumber].lastRssi());
 
-        if (rf95[radioNumber].recv(buf, &len))
-        {
-
-          // Cria um struct que contém todos os dados da mensagem que chegou pelo LoRa
-          ReceivedData data{};
-          // Seta valores que poderão ser usados futuramente
-          data.rssi = to_string(rf95[radioNumber].lastRssi());
-
-          data.frequency = to_string(frequencies[radioNumber]);
-          data.radio = radioNumber;
-          // Executa split da mensagem
-          splitBuf((char *)buf, data);
-
-          // Executa o protocolo de recebimento da mensagem LoRa
-          receiveMessage(ui, from, radioNumber, data);
-          //                log("Sender -> " + to_string(forwardToLoRa.size()) + " | Recv ->" + to_string(forwardToServer.size()));
-        } // if recv
-        else
-        {
-          debug("Erro ao receber mensagem :(\n");
-          log("Erro na recepcao de mensagem");
-        }
+        data.frequency = to_string(frequencies[radioNumber]);
+        data.radio = radioNumber;
+        // Executa split da mensagem
+        splitBuf((char *)buf, data);
+        
+        // Executa o protocolo de recebimento da mensagem LoRa
+        receiveMessage(ui, from, radioNumber, data);
+        //                log("Sender -> " + to_string(forwardToLoRa.size()) + " | Recv ->" + to_string(forwardToServer.size()));
+      } // if recv
+      else
+      {
+        debug("Erro ao receber mensagem :(\n");
+        log("Erro na recepcao de mensagem");
       }
+    } 
     }
     // if radio available
     else if ((millis(_lastMessageMillis)) > TIME_TO_UPDATE && radioNumber == 1)
     {
       _lastMessageMillis = getMillis();
-      // TODO FUNÇÂO DE ENVIO DE MENSAGEM
+      //TODO FUNÇÂO DE ENVIO DE MENSAGEM
       ReadLoRaArray();
     }
 
@@ -643,11 +628,13 @@ int main(int argc, char *argv[])
     // Recomendado nao mexer
     bcm2835_delay(5);
 
-    // COMENTE ESSA LINHA PARA USAR APENAS O RADIO 0
+    //COMENTE ESSA LINHA PARA USAR APENAS O RADIO 0
     radioNumber = radioNumber > number_of_radios_to_initialize - 2 ? 0 : radioNumber + 1;
 
-  } // while (!force_exit)
+  
+  } //while (!force_exit)
   printf("\n%s Ending\n", __BASEFILE__);
   bcm2835_close();
   return 0;
+
 }
